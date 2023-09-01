@@ -37,21 +37,23 @@ class NerDatasetGenerator:
         tgt_lang: Union[Langs, str],
         output_dir: os.PathLike,
         dataset_is_local: bool = False,
-        generate_count: Optional[int] = None,
+        start_from: int = 0,
+        stop_at: Optional[int] = None,
         save_steps: Optional[int] = None,
         batch_size: int = 5
-    ):
+    ) -> None:
         dataset = load_from_disk(
             dataset) if dataset_is_local else load_dataset(dataset)
         preprocessed_dataset = self.__preprocess_dataset(
-            dataset, generate_count)
+            dataset, start_from, stop_at)
         self.__generate(preprocessed_dataset, batch_size, src_lang,
                         tgt_lang, save_steps, output_dir)
 
     def __preprocess_dataset(
         self,
         dataset: DatasetDict,
-        generate_count: Optional[int] = None
+        start_from: int = 0,
+        stop_at: Optional[int] = None
     ) -> list:
         print("Preprocessing started....")
         dataset_as_list = []
@@ -74,15 +76,16 @@ class NerDatasetGenerator:
 
             if tokens_count != tags_count:
                 print(f'The number of entities in columns with tokens and tags is not the same! \
-                        {key}: Entities in {tokens_column} = {tokens_count}, \
-                        but {tag_column} = {tags_count}')
+                        {key}: Entities in "{tokens_column}" = {tokens_count}, \
+                        but "{tag_column}" = {tags_count}')
                 return -1
             dataset_as_list += df.to_dict('records')
-        if (generate_count is not None and generate_count > len(dataset_as_list)):
-            print('generate_count must be equal or less than size of dataset!')
-            return -1
-        dataset_with_tags = self.__insert_tags(
-            dataset_as_list[:generate_count], tokens_column, tag_column)
+        if stop_at:
+            dataset_with_tags = self.__insert_tags(
+                dataset_as_list[start_from:stop_at], tokens_column, tag_column)
+        else:
+            dataset_with_tags = self.__insert_tags(
+                dataset_as_list[start_from::], tokens_column, tag_column)
         print(f'Done! Preprocessed {len(dataset_with_tags)} sentences')
         return dataset_with_tags
 
