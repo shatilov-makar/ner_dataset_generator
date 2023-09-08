@@ -32,30 +32,25 @@ def __clear_texts(dataset: list
         text = text.replace('  ', ' ')
         init_texts.append(text.strip())
     clear_texts = []
+
     for text in init_texts:
-        open_count = 0
-        closed_count = 0
-        flag = True
+        opened_ids = []
+        closed_ids = []
         words = text.split(' ')
         for i, word in enumerate(words):
-            try:
-                if re.search(r'\[\d]', word) is not None:
-                    open_count += 1
-                    if re.search(r'\[/\d\]', words[i + 1]) is not None \
-                            or words[i + 1] == '' \
-                            or re.search(r'\[/\d\]', words[i + 2]) is None:
-                        flag = False
-                        break
-                elif re.search(r'\[/\d\]', word) is not None \
-                        and re.search(r'\[\d]', words[i - 2]) is not None:
-                    closed_count += 1
-            except:
-                flag = False
-                break
-        if flag and open_count == closed_count:
-            clear_texts.append(text)
+            if re.search(r'\[\d]', word) is not None:
+                opened_ids.append({'index': i, 'tag': word.strip('[]')})
+            elif re.search(r'\[/\d\]', word) is not None:
+                closed_ids.append({'index': i, 'tag': word.strip('[/]')})
+        if len(opened_ids) == len(closed_ids):
+            normal_ids = all(i == 2 for i in [closed['index'] - opened['index']
+                                                  for opened, closed in zip(opened_ids, closed_ids)])
+            normal_tags = all([opened['tag'] == closed['tag']
+                               for opened, closed in zip(opened_ids, closed_ids)])
+            if normal_ids and normal_tags:
+                clear_texts.append(text)
     print(f'Found {len(init_texts) - len(clear_texts)} broken sentences.', '\n',
-          f'{len(clear_texts)}  will be used')
+          f'{len(clear_texts)} sentences will be used')
     return clear_texts
 
 
