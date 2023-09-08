@@ -3,7 +3,7 @@ import itertools
 import os
 import re
 from datasets import Dataset, DatasetDict
-
+from nltk.tokenize import word_tokenize
 
 def build_dataset(
     path_to_csv: os.PathLike,
@@ -47,7 +47,7 @@ def __clear_texts(dataset: list
                                                   for opened, closed in zip(opened_ids, closed_ids)])
             normal_tags = all([opened['tag'] == closed['tag']
                                for opened, closed in zip(opened_ids, closed_ids)])
-            if normal_ids and normal_tags:
+            if normal_ids and normal_tags and text.count('[') == len(opened_ids) * 2:
                 clear_texts.append(text)
     print(f'Found {len(init_texts) - len(clear_texts)} broken sentences.', '\n',
           f'{len(clear_texts)} sentences will be used')
@@ -58,30 +58,20 @@ def __map_tags_with_labels(
         dataset: list) -> list:
     mapped_dataset = []
     for text in dataset:
-        words = []
-
-        for (name, age) in itertools.zip_longest(re.split(r"[ ]", text, 10000),
-                                                 re.findall(r"[ ]", text), fillvalue=''):
-            f = name + age
-            if f.strip() != '':
-                words.append(f.strip())
-
         raw = {'tokens': [], 'ner_tags': []}
-        word_iter = iter(words)
-
-        for word in word_iter:
-            if re.search(r'\[\d]', word) is not None:
-                plus_1 = next(word_iter)
-                if re.search(r'\[/\d\]', plus_1) is None:
-                    plus_2 = next(word_iter)
-                if re.search(r'\[/\d\]', plus_2) is not None:
-                    raw['tokens'].append(plus_1)
-                    raw['ner_tags'].append(
-                        int(re.sub(r'[ \[ \]]', '', word)))
-            elif re.search(r'\[/\d\]', word) is None:
-                raw['tokens'].append(word)
+        tokenized_str = iter(word_tokenize(text))
+        for token in tokenized_str:
+            if token == '[':
+                tag = next(tokenized_str)        
+                next(tokenized_str)
+                word = next(tokenized_str)
+                while word != '[':
+                    raw['tokens'].append(word)
+                    raw['ner_tags'].append(int(tag))
+                    word = next(tokenized_str)
+                next(tokenized_str), next(tokenized_str)
+            else:
                 raw['ner_tags'].append(0)
-
-        if len(raw['tokens']) == len(raw['ner_tags']):
-            mapped_dataset.append(raw)
+                raw['tokens'].append(token)
+        mapped_dataset.append(raw)
     return mapped_dataset
