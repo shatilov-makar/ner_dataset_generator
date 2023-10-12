@@ -22,14 +22,14 @@ from dataset_builder import build_dataset
 
 generator = NerDatasetGenerator()
 
-generator.translate_sentences(dataset='E:\\Turk\\Ner\\nerd',
+generator.translate_sentences(dataset='E:\\Turk\\ner_dataset',
                               dataset_is_local=True,
-                              src_lang='kaz_Cyrl',
-                              tgt_lang='tur_Latn',
+                              src_lang='tur_Latn',
+                              tgt_lang='kaz_Cyrl',
                               start_from=10_000,
                               stop_at=20_000
                               save_steps=500,
-                              output_dir='turk',
+                              output_dir='kaz',
                               batch_size=5)
 ```
 
@@ -37,7 +37,7 @@ generator.translate_sentences(dataset='E:\\Turk\\Ner\\nerd',
 Затем вызываем функцию build_dataset, которая превратит сгенерированные предложения в NER-датасет
 ```
 build_dataset(
-    path_to_csv="turk\\sentences\\18_22__10_000.csv",
+    path_to_csv="kaz\\sentences\\18_22__10_000.csv",
     output_dir='translated_dataset')
 
 ```
